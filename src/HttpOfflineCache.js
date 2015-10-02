@@ -88,7 +88,7 @@
                 paramSerializer: '$httpParamSerializer'
             };
 
-            this.$get = ["$http", function ($http) {
+            this.$get = ["$http", "$q", function ($http, $q) {
                 function cachedGetRequest(url, config) {
                     if (isOffline()) {
                         return getCachedRequestPromise(url, config);
