@@ -90,8 +90,39 @@
 
             this.$get = ["$http", function ($http) {
                 function cachedGetRequest(url, config) {
+                    if (isOffline()) {
+                        return getCachedRequestPromise(url, config);
+                    } else {
+                        return $http.get(url, config)
+                            .then(function (response) {
+                                return persistResponse(response, url, config);
+                            })
+                            .catch(function (response) {
+                                if (!response.status) {
+                                    // offline
+                                    return getCachedRequestPromise(url, config);
+                                } else {
+                                    // client or server HTTP error
+                                    return $q.reject(response);
+                                }
+                            }
+                        );
+                    }
+                }
+
+                function isOffline() {
+                    return false;
+                }
+
+                function getCachedRequestPromise(url, config) {
 
                 }
+
+                // Store successful response in the storage
+                function persistResponse(response, url, config) {
+
+                }
+
 
                 function HttpOfflineCache(configuration) {
                     if (configuration && configuration.method === 'GET') {
@@ -116,4 +147,16 @@
                 return HttpOfflineCache;
             }];
         });
+    //
+    // Another method is to set global interceptor
+    // $httpProvider.interceptors.push(function ($q) {
+    // return {
+    //     'responseError': function (responseError) {
+    //         // do something on error
+    //         if (canRecover(rejection)) {
+    //             return responseOrNewPromise
+    //         }
+    //         return $q.reject(rejection);
+    //     }
+    //};
 })();
