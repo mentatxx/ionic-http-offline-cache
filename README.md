@@ -39,7 +39,7 @@ It highly recommended you to add "sqlite" and "network" cordova plugins. It will
 
 This optional plugins are recognized by httpOfflineCache:
 
-* ```cordova plugin add org.apache.cordova.network-information```
-* ```cordova plugin add https://github.com/litehelpers/Cordova-sqlite-storage.git```
+* ```ionic plugin add cordova-plugin-network-information```
+* ```ionic plugin add https://github.com/litehelpers/Cordova-sqlite-storage.git```
 
-
+**Note.** There is no specific dependency on Ionic framework. But AngularJS and Cordova are required, and they are both available for Ionic from a box.
