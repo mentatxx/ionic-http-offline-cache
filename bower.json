@@ -1,0 +1,28 @@
+{
+  "name": "ionic-http-offline-cache",
+  "version": "1.0.0",
+  "homepage": "https://github.com/mentatxx/ionic-http-offline-cache",
+  "authors": [
+    "Alexey Petushkov <mentatxx@gmail.com>"
+  ],
+  "main": ["./dist/HttpOfflineCache.min.js"],
+  "description": "Drop-in replacement for $http. It will cache responses for GET requests and return them while in offline",
+  "keywords": [
+    "ionic",
+    "ionic-http-offline-cache",
+    "http cache",
+    "offline cache",
+    "cache for ionic"
+  ],
+  "license": "Apache 2.0",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": ">=1.4.0"
+  }
+}
