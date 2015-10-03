@@ -88,64 +88,88 @@
                 paramSerializer: '$httpParamSerializer'
             };
 
-            this.$get = ["$http", "$q", function ($http, $q) {
-                function cachedGetRequest(url, config) {
-                    if (isOffline()) {
-                        return getCachedRequestPromise(url, config);
-                    } else {
-                        return $http.get(url, config)
-                            .then(function (response) {
-                                return persistResponse(response, url, config);
-                            })
-                            .catch(function (response) {
-                                if (!response.status) {
-                                    // offline
-                                    return getCachedRequestPromise(url, config);
-                                } else {
-                                    // client or server HTTP error
-                                    return $q.reject(response);
+            this.$get = ["$http", "$q", "httpOfflineCacheStorage", "$injector",
+                function ($http, $q, httpOfflineCacheStorage, $injector) {
+
+                    var $cordovaNetwork = $injector.get('$cordovaNetwork');
+
+                    function cachedGetRequest(url, config) {
+                        if (isOffline()) {
+                            return getCachedRequestPromise(url, config);
+                        } else {
+                            return $http.get(url, config)
+                                .then(function (response) {
+                                    return persistResponse(response, url, config);
+                                })
+                                .catch(function (response) {
+                                    if (!response.status) {
+                                        // offline
+                                        return getCachedRequestPromise(url, config);
+                                    } else {
+                                        // client or server HTTP error
+                                        return $q.reject(response);
+                                    }
                                 }
+                            );
+                        }
+                    }
+
+                    function isOffline() {
+                        if ($cordovaNetwork) {
+                            return $cordovaNetwork.isOffline();
+                        } else {
+                            return false;
+                        }
+                    }
+
+                    function getCachedRequestPromise(url, config) {
+                        return httpOfflineCacheStorage.get(url).then(function (data) {
+                            if (data) {
+                                return data.response;
+                            } else {
+                                // return offline response
+                                return {
+                                    status: 0,
+                                    data: '',
+                                    headers: function () {
+                                        return '';
+                                    },
+                                    config: config,
+                                    statusText: ''
+                                };
                             }
-                        );
+                        });
                     }
-                }
 
-                function isOffline() {
-                    return false;
-                }
-
-                function getCachedRequestPromise(url, config) {
-
-                }
-
-                // Store successful response in the storage
-                function persistResponse(response, url, config) {
-
-                }
-
-
-                function HttpOfflineCache(configuration) {
-                    if (configuration && configuration.method === 'GET') {
-                        return cachedGetRequest(configuration.url, configuration);
-                    } else {
-                        return $http(configuration);
+                    // Store successful response in the storage
+                    function persistResponse(response, url, config) {
+                        httpOfflineCacheStorage.set(url, {response: response, config: config});
                     }
-                }
 
-                // methods
-                HttpOfflineCache.get = cachedGetRequest;
-                HttpOfflineCache.head = $http.head.bind($http);
-                HttpOfflineCache.post = $http.post.bind($http);
-                HttpOfflineCache.put = $http.put.bind($http);
-                HttpOfflineCache.delete = $http.delete.bind($http);
-                HttpOfflineCache.jsonp = $http.jsonp.bind($http);
-                HttpOfflineCache.patch = $http.patch.bind($http);
-                // properties
-                HttpOfflineCache.pendingRequests = $http.pendingRequests;
-                HttpOfflineCache.defaults = $http.defaults;
 
-                return HttpOfflineCache;
-            }];
+                    function HttpOfflineCache(configuration) {
+                        if (configuration && configuration.method === 'GET') {
+                            return cachedGetRequest(configuration.url, configuration);
+                        } else {
+                            return $http(configuration);
+                        }
+                    }
+
+                    // methods
+                    HttpOfflineCache.get = cachedGetRequest;
+                    HttpOfflineCache.head = $http.head.bind($http);
+                    HttpOfflineCache.post = $http.post.bind($http);
+                    HttpOfflineCache.put = $http.put.bind($http);
+                    HttpOfflineCache.delete = $http.delete.bind($http);
+                    HttpOfflineCache.jsonp = $http.jsonp.bind($http);
+                    HttpOfflineCache.patch = $http.patch.bind($http);
+                    HttpOfflineCache.isOffline = isOffline;
+                    // properties
+                    HttpOfflineCache.pendingRequests = $http.pendingRequests;
+                    HttpOfflineCache.defaults = $http.defaults;
+
+                    return HttpOfflineCache;
+                }];
         });
     //
     // Another method is to set global interceptor
