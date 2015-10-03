@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    angular.module('ionic-http-offline-cache')
+    angular.module('ionic-http-offline-cache', [])
         .provider('httpOfflineCache', function () {
             var APPLICATION_JSON = 'application/json';
             var CONTENT_TYPE_APPLICATION_JSON = {'Content-Type': APPLICATION_JSON + ';charset=utf-8'};
@@ -18,7 +18,7 @@
                     for (var i = 0, ii = src.length; i < ii; i++) {
                         dst[i] = src[i];
                     }
-                } else if (isObject(src)) {
+                } else if (angular.isObject(src)) {
                     dst = dst || {};
 
                     for (var key in src) {
@@ -91,7 +91,10 @@
             this.$get = ["$http", "$q", "httpOfflineCacheStorage", "$injector",
                 function ($http, $q, httpOfflineCacheStorage, $injector) {
 
-                    var $cordovaNetwork = $injector.get('$cordovaNetwork');
+                    var $cordovaNetwork;
+                    if ($injector.has('$cordovaNetwork')) {
+                        $cordovaNetwork= $injector.get('$cordovaNetwork');
+                    }
 
                     function cachedGetRequest(url, config) {
                         if (isOffline()) {
@@ -128,7 +131,7 @@
                                 return data.response;
                             } else {
                                 // return offline response
-                                return {
+                                return $q.reject({
                                     status: 0,
                                     data: '',
                                     headers: function () {
@@ -136,7 +139,7 @@
                                     },
                                     config: config,
                                     statusText: ''
-                                };
+                                });
                             }
                         });
                     }
@@ -144,6 +147,7 @@
                     // Store successful response in the storage
                     function persistResponse(response, url, config) {
                         httpOfflineCacheStorage.set(url, {response: response, config: config});
+                        return response;
                     }
 
 

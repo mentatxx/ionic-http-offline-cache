@@ -22,8 +22,12 @@
             this.$get = ['$window', '$q', '$injector', function ($window, $q, $injector) {
 
                 function sqliteStorageFactory() {
-                    var $cordovaSQLite = $injector.get('$cordovaSQLite'),
+                    var $cordovaSQLite,
                         db;
+
+                    if ($injector.has('$cordovaSQLite')) {
+                        $cordovaSQLite = $injector.get('$cordovaSQLite');
+                    }
 
                     function openDb() {
                         if (!$cordovaSQLite) return $q.reject(false);
@@ -90,6 +94,7 @@
                 }
 
                 function localStorageFactory() {
+                    var PREFIX = 'httpCache-';
                     return {
                         isSupported: (function () {
                             try {
@@ -100,27 +105,36 @@
                         })(),
                         clear: function () {
                             for (var i = $window.localStorage.length - 1; i >= 0; i--) {
-                                $window.localStorage.removeItem($window.localStorage.key(i));
+                                var keyName = $window.localStorage.key(i);
+                                if (keyName.indexOf(PREFIX) === 0) {
+                                    $window.localStorage.removeItem(keyName);
+                                }
                             }
                             return $q.resolve(true);
                         },
                         has: function (key) {
-                            return $q.resolve(typeof $window.localStorage[key] !== 'undefined');
+                            return $q.resolve(typeof $window.localStorage[PREFIX+key] !== 'undefined');
                         },
                         get: function (key) {
-                            var stringValue = $window.localStorage.getItem(key);
+                            var stringValue = $window.localStorage.getItem(PREFIX+key);
                             if (stringValue === null || typeof stringValue === 'undefined') {
                                 return $q.resolve(undefined);
                             }
                             return $q.resolve(angular.fromJson(stringValue));
                         },
                         set: function (key, value) {
-                            var stringValue = angular.toJson(value);
-                            $window.localStorage.setItem(key, stringValue);
+                            var that = this,
+                                stringValue = angular.toJson(value);
+                            try {
+                                $window.localStorage.setItem(PREFIX+key, stringValue);
+                            } catch(e) {
+                                // handle oveflow case with roll-over
+                                that.clear();
+                            }
                             return $q.resolve(true);
                         },
                         remove: function (key) {
-                            $window.localStorage.removeItem(key);
+                            $window.localStorage.removeItem(PREFIX+key);
                             return $q.resolve(true);
                         }
                     };
@@ -176,7 +190,7 @@
                     return backend;
                 }
                 // Select best backend
-                startup();
+                return startup();
             }];
         });
 })();
