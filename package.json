@@ -1,0 +1,27 @@
+{
+  "name": "ionic-http-offline-cache",
+  "version": "1.0.0",
+  "description": "$http replacement with offline cache",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mentatxx/ionic-http-offline-cache.git"
+  },
+  "keywords": [
+    "gulp"
+  ],
+  "author": "Alexey Petushkov",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/mentatxx/ionic-http-offline-cache/issues"
+  },
+  "homepage": "https://github.com/mentatxx/ionic-http-offline-cache",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-concat": "^2.6.0",
+    "gulp-uglify": "^1.4.1"
+  }
+}
