@@ -88,13 +88,11 @@
                 paramSerializer: '$httpParamSerializer'
             };
 
-            this.$get = ["$http", "$q", "httpOfflineCacheStorage", "$injector",
-                function ($http, $q, httpOfflineCacheStorage, $injector) {
+            this.$get = ["$window", "$http", "$q", "httpOfflineCacheStorage",
+                function ($window, $http, $q, httpOfflineCacheStorage) {
 
-                    var $cordovaNetwork;
-                    if ($injector.has('$cordovaNetwork')) {
-                        $cordovaNetwork= $injector.get('$cordovaNetwork');
-                    }
+                    var $cordovaNetwork = $window.navigator && $window.navigator.connection,
+                        CONNECTION_NONE = $window.Connection && $window.Connection.NONE;
 
                     function cachedGetRequest(url, config) {
                         if (isOffline()) {
@@ -118,8 +116,10 @@
                     }
 
                     function isOffline() {
+                        $cordovaNetwork = $window.navigator && $window.navigator.connection;
+                        CONNECTION_NONE = $window.Connection && $window.Connection.NONE;
                         if ($cordovaNetwork) {
-                            return $cordovaNetwork.isOffline();
+                            return $cordovaNetwork['type'] === CONNECTION_NONE;
                         } else {
                             return false;
                         }

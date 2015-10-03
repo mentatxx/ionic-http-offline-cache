@@ -8,31 +8,33 @@
 
             var availableBackends = [BACKEND_SQLITE, BACKEND_LOCALSTORAGE, BACKEND_INMEMORY],
                 backends = [BACKEND_SQLITE, BACKEND_LOCALSTORAGE, BACKEND_INMEMORY],
-                backend;
+                backend,
+                stub;
 
             this.setBackends = function (newBackends) {
-                newBackends.forEach(function(item){
-                    if (availableBackends.indexOf(item) <0) {
-                        throw new Error('Invalid backend type for HttpOfflineCache '+item);
+                newBackends.forEach(function (item) {
+                    if (availableBackends.indexOf(item) < 0) {
+                        throw new Error('Invalid backend type for HttpOfflineCache ' + item);
                     }
                 });
                 backends = newBackends;
             };
 
-            this.$get = ['$window', '$q', '$injector', function ($window, $q, $injector) {
+            this.$get = ['$window', '$q', function ($window, $q) {
 
                 function sqliteStorageFactory() {
                     var $cordovaSQLite,
                         db;
 
-                    if ($injector.has('$cordovaSQLite')) {
-                        $cordovaSQLite = $injector.get('$cordovaSQLite');
-                    }
+                    $cordovaSQLite = $window.sqlitePlugin || $window.SQLitePlugin;
 
                     function openDb() {
                         if (!$cordovaSQLite) return $q.reject(false);
                         if (db) return $q.resolve(true);
                         db = $cordovaSQLite.openDatabase({name: "httpOfflineCache.db", location: 2});
+                        if (!db) {
+                            throw new Error('SQLite3 could not be initialized');
+                        }
                         return executeSql('CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, val TEXT)').then(function () {
                             return true;
                         });
@@ -41,9 +43,6 @@
                     function executeSql(sql, args) {
                         var defer = $q.defer();
                         args = args || [];
-                        if (!db) {
-                            throw new Error('SQLite3 database not initialized yet');
-                        }
                         openDb().then(function () {
                             db.transaction(function (tx) {
                                 tx.executeSql(sql, args,
@@ -51,12 +50,16 @@
                                         defer.resolve(res);
                                     },
                                     function (e) {
+                                        console.log("SQlite statement error: " + e.message);
                                         defer.reject(e);
                                     }
                                 );
+                            }, function (e) {
+                                console.log("SQlite trx error: " + e.message);
+                                defer.reject(e);
                             });
-                            return defer.promise;
                         });
+                        return defer.promise;
                     }
 
 
@@ -113,10 +116,10 @@
                             return $q.resolve(true);
                         },
                         has: function (key) {
-                            return $q.resolve(typeof $window.localStorage[PREFIX+key] !== 'undefined');
+                            return $q.resolve(typeof $window.localStorage[PREFIX + key] !== 'undefined');
                         },
                         get: function (key) {
-                            var stringValue = $window.localStorage.getItem(PREFIX+key);
+                            var stringValue = $window.localStorage.getItem(PREFIX + key);
                             if (stringValue === null || typeof stringValue === 'undefined') {
                                 return $q.resolve(undefined);
                             }
@@ -126,15 +129,15 @@
                             var that = this,
                                 stringValue = angular.toJson(value);
                             try {
-                                $window.localStorage.setItem(PREFIX+key, stringValue);
-                            } catch(e) {
+                                $window.localStorage.setItem(PREFIX + key, stringValue);
+                            } catch (e) {
                                 // handle oveflow case with roll-over
                                 that.clear();
                             }
                             return $q.resolve(true);
                         },
                         remove: function (key) {
-                            $window.localStorage.removeItem(PREFIX+key);
+                            $window.localStorage.removeItem(PREFIX + key);
                             return $q.resolve(true);
                         }
                     };
@@ -165,21 +168,47 @@
                     };
                 }
 
+                function lazyStubFactory() {
+                    stub = {
+                        startup: startup,
+                        clear: function () {
+                            if (!backend) startup();
+                            return backend.clear();
+                        },
+                        has: function (key) {
+                            if (!backend) startup();
+                            return backend.has(key);
+                        },
+                        get: function (key) {
+                            if (!backend) startup();
+                            return backend.get(key);
+                        },
+                        set: function (key, value) {
+                            if (!backend) startup();
+                            return backend.set(key, value);
+                        },
+                        remove: function (key) {
+                            if (!backend) startup();
+                            return backend.remove(key);
+                        }
+                    };
+                    return stub;
+                }
+
                 function startup() {
                     backend = null;
-                    backends.forEach(function(backendType){
+                    backends.forEach(function (backendType) {
                         if (backend) return;
                         if (backendType === BACKEND_SQLITE) {
-                            backend = sqliteStorageFactory ();
-                        } else
-                        if (backendType === BACKEND_LOCALSTORAGE) {
-                            backend = localStorageFactory ();
-                        } else
-                        if (backendType === BACKEND_INMEMORY) {
-                            backend = inMemoryStorageFactory ();
+                            backend = sqliteStorageFactory();
+                        } else if (backendType === BACKEND_LOCALSTORAGE) {
+                            backend = localStorageFactory();
+                        } else if (backendType === BACKEND_INMEMORY) {
+                            backend = inMemoryStorageFactory();
                         } else {
-                            throw new Error('Invalid backend type for HttpOfflineCache '+backendType);
+                            throw new Error('Invalid backend type for HttpOfflineCache ' + backendType);
                         }
+                        stub.type = backend.type = backendType;
                         if (!backend.isSupported) {
                             backend = null;
                         }
@@ -189,8 +218,9 @@
                     }
                     return backend;
                 }
+
                 // Select best backend
-                return startup();
+                return lazyStubFactory();
             }];
         });
 })();
